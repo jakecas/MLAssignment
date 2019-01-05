@@ -26,7 +26,6 @@ def nscatter(xyz, labels, groups):
     pyplot.show()
 
 
-
 file = open("iris.data", "r")
 lines = file.read().split("\n")
 data = []
