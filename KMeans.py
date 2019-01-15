@@ -9,14 +9,26 @@ import numpy.random as random
 
 def randomcentroids(dataset, k):
     return [dataset[i] for i in random.choice(len(dataset), k)]
+    # return findcentroids(dataset, k, randomgroups(len(dataset), k))
+
+
+def randomgroups(length, k):
+    arr = [i % k for i in range(length)]
+    return arr
 
 
 def findcentroids(dataset, k, groups):
     newcentroids = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
     total = [0] * k
-    for i in range(len(dataset)):
-        newcentroids[groups[i]] = [sum(x) for x in zip(newcentroids[groups[i]], dataset[groups[i]])]
+    for i in range(len(groups)):
+        for j in range(len(dataset[i])):
+            newcentroids[groups[i]][j] += dataset[i][j]
         total[groups[i]] += 1
+
+    for i in range(len(newcentroids)):
+        for p in newcentroids[i]:
+            if total[i] is not 0:
+                p /= total[i]
 
     for i in range(k):
         newcentroids[i] = tuple(x / total[i] for x in newcentroids[i])
@@ -26,18 +38,18 @@ def findcentroids(dataset, k, groups):
 
 def kmeans(dataset, k, centroids, groups):
     newgroups = groups.copy()
+
     for i in range(len(dataset)):
         best = math.inf
         for j in range(k):
-            dist = npl.norm(np.array(tuple(dataset[i])) - np.array(tuple(centroids[j])))
+            dist = euclideandistance(dataset[i], centroids[j])
             if best > dist:
                 best = dist
                 newgroups[i] = j
 
-    for i in range(len(groups)):
-        if newgroups[i] != groups[i]:
-            print("RECUR!")
-            return kmeans(dataset, k, findcentroids(dataset, k, newgroups), newgroups)
+    if not arraysequal(newgroups, groups):
+        print("RECUR!")
+        return kmeans(dataset, k, findcentroids(dataset, k, newgroups), newgroups)
 
     return newgroups
 
@@ -48,6 +60,24 @@ def getelsat(x, ilist):
 
 def getcol(x, i):
     return [x[j][i] for j in range(len(x))]
+
+
+def arraysequal(a, b):
+    if len(a) != len(b):
+        return False
+
+    for i, j in zip(a, b):
+        if i != j:
+            return False
+
+    return True
+
+
+def euclideandistance(a, b):
+    x = np.array(a)
+    y = np.array(b)
+
+    return abs(npl.norm(y-x))
 
 
 def nscatter(xyz, labels, groups):
@@ -92,14 +122,14 @@ for i in range(len(nums)):
 
 # Determining groups
 kvar = 3
-colours = kmeans(dataPlot, kvar, randomcentroids(dataPlot, kvar), [0]*len(axessequence[0]))
+colours = kmeans(dataPlot, kvar, randomcentroids(dataPlot, kvar), [0] * len(axessequence[0]))
 for i, item in enumerate(colours):
     if item == 0:
-        colours[i] = 'r'
+        colours[i] = 'b'
     if item == 1:
         colours[i] = 'g'
     if item == 2:
-        colours[i] = 'b'
+        colours[i] = 'r'
 
 # print(axessequence)
 nscatter(axessequence, list(labellist[i] for i in nums), colours)
