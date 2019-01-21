@@ -1,14 +1,21 @@
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
-
 import math
 import numpy as np
 import numpy.linalg as npl
 import numpy.random as random
+import datautils as utils
+import copy
 
 
-def randomcentroids(dataset, k):
-    return [dataset[i] for i in random.choice(len(dataset), k)]
+def randomcentroids(dataset, k, mindistance):
+    centroids = [dataset[i] for i in random.choice(len(dataset), k)]
+
+    for a in centroids:
+        for b in centroids:
+            if b is not a:
+                if euclideandistance(a, b) < mindistance:
+                    # if this set of centroids is unfavourable, run it again
+                    return randomcentroids(dataset, k, mindistance)
+    return centroids
     # return findcentroids(dataset, k, randomgroups(len(dataset), k))
 
 
@@ -18,7 +25,9 @@ def randomgroups(length, k):
 
 
 def findcentroids(dataset, k, groups):
-    newcentroids = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    newcentroids = []
+    for i in range(k):
+        newcentroids.append([0] * len(dataset[0]))
     total = [0] * k
     for i in range(len(groups)):
         for j in range(len(dataset[i])):
@@ -31,7 +40,13 @@ def findcentroids(dataset, k, groups):
                 p /= total[i]
 
     for i in range(k):
-        newcentroids[i] = tuple(x / total[i] for x in newcentroids[i])
+        point = []
+        for x in newcentroids[i]:
+            if total[i] is not 0:
+                point.append(x / total[i])
+            else:
+                point.append(0)
+        newcentroids[i] = tuple(point)
 
     return newcentroids
 
@@ -47,19 +62,12 @@ def kmeans(dataset, k, centroids, groups):
                 best = dist
                 newgroups[i] = j
 
-    if not arraysequal(newgroups, groups):
-        print("RECUR!")
-        return kmeans(dataset, k, findcentroids(dataset, k, newgroups), newgroups)
+    newcentroids = findcentroids(dataset, k, newgroups)
+
+    if not arraysequal(newcentroids, centroids):
+        return kmeans(dataset, k, newcentroids, newgroups)
 
     return newgroups
-
-
-def getelsat(x, ilist):
-    return [x[i] for i in ilist]
-
-
-def getcol(x, i):
-    return [x[j][i] for j in range(len(x))]
 
 
 def arraysequal(a, b):
@@ -80,56 +88,72 @@ def euclideandistance(a, b):
     return abs(npl.norm(y-x))
 
 
-def nscatter(xyz, labels, groups):
-    fig = pyplot.figure()
-    ax = Axes3D(fig)
-
-    while len(xyz) < 3:
-        xyz.append([0] * len(xyz[0]))
-    while len(labels) < 3:
-        labels.append("Null")
-
-    ax.set_xlabel(labels[0])
-    ax.set_ylabel(labels[1])
-    ax.set_zlabel(labels[2])
-    ax.scatter(*xyz, c=groups)
-    pyplot.show()
+def runkmeans(data, k, mindistance):
+    return kmeans(data, k, randomcentroids(data, k, mindistance), [0] * len(data))
 
 
-file = open("iris.data", "r")
-lines = file.read().split("\n")
-data = []
+def plotkmeans(nums, labellist, data_plot, expgroups, k, groupcoulours, centroidsmindist):
+    # Plotting
+    axessequence = []
+    for i in range(len(nums)):
+        # Getting transposing the matrix so as to get all x-values in a sequence, y, z.
+        axessequence.append(utils.getcol(data_plot, i))
 
-for line in lines:
-    data.append(line.strip().split(","))
+    # Determining groups
+    # colours = kmeans(data_plot, k, randomcentroids(data_plot, k), [0] * len(axessequence[0]))
+    groups = runkmeans(data_plot, k, centroidsmindist)
+    colours = copy.deepcopy(groups)
+    for i, item in enumerate(colours):
+        for j, gcolour in enumerate(groupcoulours):
+            if item == j:
+                colours[i] = gcolour
 
-labellist = open("irisattributes.data").read().split(",")
-print(labellist)
+    utils.nscatter(axessequence, list(labellist[i] for i in nums), colours)
+    print("Accuracy: " + str(accuracy3groups(data_plot, expgroups, groups)))
 
-numstr = input("Input up to three comma-separated positions of the attributes you wish to plot.\n").split(",")
-nums = [int(numstr[i])-1 for i in range(len(numstr))]
 
-dataPlot = []
-if len(nums) <= 3:
+def accuracy3groups(data, expgroups, actgroups):
+    tuples = utils.maketuples(data)
+    expset = copy.deepcopy(tuples)
+    actset = copy.deepcopy(tuples)
+
+    exp = [set(), set(), set()]
+    act = [set(), set(), set()]
+
     for i in range(len(data)):
-        dataPlot.append(list(map(float, getelsat(data[i], nums))))
+        exp[expgroups[i]].add(expset[i])
+        act[actgroups[i]].add(actset[i])
 
-# Plotting
-axessequence = []
-for i in range(len(nums)):
-    # Getting transposing the matrix so as to get all x-values in a sequence, y, z.
-    axessequence.append(getcol(dataPlot, i))
+    bestfit = []
+    for e in exp:
+        diff = []
+        for a in act:
+            diff.append(len(e & a))
+        bestfit.append(utils.getindexofsmallest(diff))
 
-# Determining groups
-kvar = 3
-colours = kmeans(dataPlot, kvar, randomcentroids(dataPlot, kvar), [0] * len(axessequence[0]))
-for i, item in enumerate(colours):
-    if item == 0:
-        colours[i] = 'b'
-    if item == 1:
-        colours[i] = 'g'
-    if item == 2:
-        colours[i] = 'r'
+    if len(set(bestfit)) < 3:
+        print("ERROR: no best fit found")
+        return 0
 
-# print(axessequence)
-nscatter(axessequence, list(labellist[i] for i in nums), colours)
+    for i in range(len(act)):
+        if bestfit[i] == i:
+            continue
+        else:
+            # Switching the current set with the set at the position it should be
+            act[bestfit[i]], act[i] = act[i], act[bestfit[i]]
+            bestfit[bestfit[i]], bestfit[i] = bestfit[i], bestfit[bestfit[i]]
+
+    finalexp = set()
+    finalact = set()
+    for i in range(len(exp)):
+        for j in exp[i]:
+            temp = list(j)
+            temp.append(i)
+            finalexp.add(tuple(temp))
+        for j in act[i]:
+            temp = list(j)
+            temp.append(i)
+            finalact.add(tuple(temp))
+
+    common = finalact & finalexp
+    return len(common) / len(finalact)

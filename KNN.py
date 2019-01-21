@@ -5,47 +5,52 @@ import math
 import numpy as np
 import numpy.linalg as npl
 import numpy.random as random
+import copy
+
+import datautils as utils
 
 
-def discreteknn(dataset, k):
-    random.shuffle(dataset)
-    trainingsize = round(0.25 * len(dataset))
-    trainingset = dataset[:trainingsize]
-    unclassified = dataset[trainingsize:]
-    neighbours = []
-    total = [0] * (len(dataset[0])-1)
+def runknn(data, k, percenttraining):
+    knninput = copy.deepcopy(data)
+    random.shuffle(knninput)
+    trainingsize = round(percenttraining * len(knninput))
+    trainingset = knninput[:trainingsize].copy()
+    unclassified = knninput[trainingsize:].copy()
+    knnresult = knn3d(trainingset, unclassified, k)
+    return knnresult + trainingset
 
-    for p in unclassified:
-        for q in trainingset:
-            best = euclideandistance(q[:len(dataset)-1], p[:len(dataset)-1])
-            if len(neighbours) == k:
-                for i in neighbours:
-                    if best < i[len(i)-1]:
-                        i = q.append(best)
-                        break
+
+def knn3d(trainset, dataset, k):
+    for x in dataset:
+        neighbours = []
+        total = [0] * (len(trainset) - 1)
+        for p in trainset:
+            best = [euclideandistance(x, p)]
+            if len(neighbours) < k:
+                newn = p + best
+                neighbours.append(newn)
             else:
-                neighbours.append(q.append(best))
+                for n in neighbours:
+                    if best[0] < n[len(n)-1]:
+                        newn = p + best
+                        del n
+                        neighbours.append(newn)
+                        break
+
         for n in neighbours:
-            total[n[len(n)-2]] += 1
-        p[len(p)-2] = getindexoflargest(total)
+                total[n[len(n)-2]] += 1
 
-    return trainingset.append(unclassified[:len(unclassified)-1])
+        x[len(x)-1] = utils.getindexoflargest(total)
 
-
-def getindexoflargest(arr):
-    best = -math.inf
-    for i in arr:
-        if i > best:
-            best = i
-    return best
+    return dataset
 
 
-def getelsat(x, ilist):
-    return [x[i] for i in ilist]
+def accuracy(expected, actual):
+    expectedset = set(utils.maketuples(expected))
+    actualset = set(utils.maketuples(actual))
+    common = actualset & expectedset
 
-
-def getcol(x, i):
-    return [x[j][i] for j in range(len(x))]
+    return len(common) / len(actualset)
 
 
 def arraysequal(a, b):
@@ -66,65 +71,24 @@ def euclideandistance(a, b):
     return abs(npl.norm(y-x))
 
 
-def nscatter(xyz, labels, groups):
-    fig = pyplot.figure()
-    ax = Axes3D(fig)
+def plotknn(nums, labellist, data_plot, k, percenttraining):
+    fulldata = runknn(data_plot, k, percenttraining)
 
-    while len(xyz) < 3:
-        xyz.append([0] * len(xyz[0]))
-    while len(labels) < 3:
-        labels.append("Null")
+    # Converting int class to colours
+    colours = utils.getcol(fulldata, len(fulldata[0])-1)
+    for i, item in enumerate(colours):
+        if item == 0:
+            colours[i] = 'b'
+        if item == 1:
+            colours[i] = 'g'
+        if item == 2:
+            colours[i] = 'r'
 
-    ax.set_xlabel(labels[0])
-    ax.set_ylabel(labels[1])
-    ax.set_zlabel(labels[2])
-    ax.scatter(*xyz, c=groups)
-    pyplot.show()
+    # Transposing matrix
+    axessequence = []
+    for i in range(len(fulldata[0])-1):
+        axessequence.append(utils.getcol(fulldata, i))
 
-
-file = open("iris.data", "r")
-lines = file.read().split("\n")
-data = []
-
-for line in lines:
-    data.append(line.strip().split(","))
-
-labellist = open("irisattributes.data").read().split(",")
-print(labellist)
-
-numstr = input("Input up to three comma-separated positions of the attributes you wish to plot.\n").split(",")
-nums = [int(numstr[i])-1 for i in range(len(numstr))]
-
-dataPlot = []
-if len(nums) <= 3:
-    for i in range(len(data)):
-        datapoint = list(map(float, getelsat(data[i], nums)))
-        datapoint.append(data[i][len(data[i])-1])
-        dataPlot.append(datapoint)
-
-# Determining groups
-nameset = list(set(getcol(data, 4)))
-
-length = len(dataPlot[0])
-for i, el in enumerate(dataPlot):
-    if el[length-1] == nameset[0]:
-        el[length-1] = 0
-    if el == nameset[1]:
-        el[length-1] = 1
-    if el == nameset[2]:
-        el[length-1] = 2
-
-kvar = 7
-knnresult = discreteknn(dataPlot, kvar)
-
-# Transposing matrix
-axessequence = []
-colours = []
-for i in range(len(knnresult)):
-    if i < len(knnresult)-1:
-        axessequence.append(getcol(knnresult, i))
-    else:
-        colours = getcol(knnresult, i)
-
-# print(axessequence)
-nscatter(axessequence, colours, knnresult[len(knnresult)-1])
+    # print(axessequence)
+    utils.nscatter(axessequence, list(labellist[i] for i in nums), colours)
+    print("Accuracy: " + str(accuracy(data_plot, fulldata)))
