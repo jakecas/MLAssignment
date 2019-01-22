@@ -36,16 +36,22 @@ def averageaccuracyknn(dataset, k, percenttraining, runs):
 def averageaccuracykmeans(dataset, expgroups, k, centroidsmindist, attempts):
     acc = 0
     actualruns = attempts
+    time100 = 0
 
     for i in range(attempts):
+        start = time.time()
         actgroups = runkmeans(dataset, k, centroidsmindist)
+        end = time.time()
+
         out = accuracy3groups(dataset, expgroups, actgroups)
         if out > 0.1:
             acc += out
+            time100 += end - start
         else:
-            print("Accuracy function failed.")
             actualruns -= 1
-    return acc / actualruns
+    if actualruns == 0:
+        return "Accuracy function failed."
+    return actualruns, acc / actualruns, time100
 
 
 choice = -1
@@ -70,11 +76,11 @@ while choice != 6:
         data = utils.getdata("iris.data", cols, False)
         datagroups = utils.getgroups("iris.data")
 
-        plotkmeans(cols, labellist, data, datagroups, 3, ['r', 'g', 'b'], 1)
+        print("Accuracy and time: " + str(plotkmeans(cols, labellist, data, datagroups, 3, ['r', 'g', 'b'], 1)))
     elif choice == 3:
         data = utils.getdata("iris.data", cols, False)
         datagroups = utils.getgroups("iris.data")
-        print("Average accuracy over 100 runs: " + str(averageaccuracykmeans(data, datagroups, 3, 1, 100)))
+        print("Runs, average accuracy, time: " + str(averageaccuracykmeans(data, datagroups, 3, 1, 100)))
 
     elif choice == 4:
         data = utils.getdata("iris.data", cols, True)

@@ -1,4 +1,5 @@
 import math
+import time
 import numpy as np
 import numpy.linalg as npl
 import numpy.random as random
@@ -101,7 +102,10 @@ def plotkmeans(nums, labellist, data_plot, expgroups, k, groupcoulours, centroid
 
     # Determining groups
     # colours = kmeans(data_plot, k, randomcentroids(data_plot, k), [0] * len(axessequence[0]))
+
+    start = time.time()
     groups = runkmeans(data_plot, k, centroidsmindist)
+    end = time.time()
     colours = copy.deepcopy(groups)
     for i, item in enumerate(colours):
         for j, gcolour in enumerate(groupcoulours):
@@ -109,7 +113,7 @@ def plotkmeans(nums, labellist, data_plot, expgroups, k, groupcoulours, centroid
                 colours[i] = gcolour
 
     utils.nscatter(axessequence, list(labellist[i] for i in nums), colours)
-    print("Accuracy: " + str(accuracy3groups(data_plot, expgroups, groups)))
+    return accuracy3groups(data_plot, expgroups, groups), end-start
 
 
 def accuracy3groups(data, expgroups, actgroups):
