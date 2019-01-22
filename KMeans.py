@@ -132,7 +132,6 @@ def accuracy3groups(data, expgroups, actgroups):
         bestfit.append(utils.getindexofsmallest(diff))
 
     if len(set(bestfit)) < 3:
-        print("ERROR: no best fit found")
         return 0
 
     for i in range(len(act)):

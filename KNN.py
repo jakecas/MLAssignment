@@ -1,7 +1,4 @@
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
-
-import math
+import time
 import numpy as np
 import numpy.linalg as npl
 import numpy.random as random
@@ -30,17 +27,18 @@ def knn3d(trainset, dataset, k):
                 newn = p + best
                 neighbours.append(newn)
             else:
-                for n in neighbours:
-                    if best[0] < n[len(n)-1]:
+                for n in range(len(neighbours)):
+                    last = len(neighbours[n])-1
+                    if best[0] < neighbours[n][last]:
                         newn = p + best
-                        del n
-                        neighbours.append(newn)
-                        break
+                        temp = neighbours[n].copy()[:last]
+                        best[0] = neighbours[n][last]
+                        neighbours[n], newn = newn, temp
 
         for n in neighbours:
                 total[n[len(n)-2]] += 1
 
-        x[len(x)-1] = utils.getindexoflargest(total)
+        x[len(x) - 1] = utils.getindexoflargest(total)
 
     return dataset
 
@@ -72,7 +70,9 @@ def euclideandistance(a, b):
 
 
 def plotknn(nums, labellist, data_plot, k, percenttraining):
+    start = time.time()
     fulldata = runknn(data_plot, k, percenttraining)
+    end = time.time()
 
     # Converting int class to colours
     colours = utils.getcol(fulldata, len(fulldata[0])-1)
@@ -91,4 +91,4 @@ def plotknn(nums, labellist, data_plot, k, percenttraining):
 
     # print(axessequence)
     utils.nscatter(axessequence, list(labellist[i] for i in nums), colours)
-    print("Accuracy: " + str(accuracy(data_plot, fulldata)))
+    return accuracy(data_plot, fulldata), end-start
