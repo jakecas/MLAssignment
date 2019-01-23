@@ -5,6 +5,7 @@ import datautils as utils
 import copy
 
 
+# Returns a list of k random points in dataset which are mindistance apart.
 def randomcentroids(dataset, k, mindistance):
     centroids = [dataset[i] for i in random.choice(len(dataset), k)]
 
@@ -17,11 +18,10 @@ def randomcentroids(dataset, k, mindistance):
     return centroids
 
 
-def randomgroups(length, k):
-    arr = [i % k for i in range(length)]
-    return arr
-
-
+# Finds the centroids of each group,
+# where dataset is a list of points in cartesian space,
+# k is the number of groups,
+# and groups is the list of groups that each point in dataset belongs to
 def findcentroids(dataset, k, groups):
     newcentroids = []
     for i in range(k):
@@ -49,29 +49,42 @@ def findcentroids(dataset, k, groups):
     return newcentroids
 
 
+# The recursive kmeans algorithm:
+# For each point in dataset,
+# it puts it into the group with the closest centroid,
+# it finds the centroids of these new groups,
+# then it returns the result of the kmeans on these centroids.
+# If the groupings do not change, it returns them
 def kmeans(dataset, k, centroids, groups):
     newgroups = groups.copy()
 
     for i in range(len(dataset)):
         best = math.inf
+        # Finding the closest centroid
         for j in range(k):
             dist = utils.euclideandistance(dataset[i], centroids[j])
             if best > dist:
                 best = dist
+                # Setting the group of this point to that of the closest centroid
                 newgroups[i] = j
 
+    # Finding the centroids of the new groupings
     newcentroids = findcentroids(dataset, k, newgroups)
 
     if not utils.arraysequal(newcentroids, centroids):
+        # Recursive call with the same dataset, but the new centroids and groupings
         return kmeans(dataset, k, newcentroids, newgroups)
 
+    # Algorithm converged, so no point in running further
     return newgroups
 
 
+# Starts the kmeans algorithm by finding randomcentroids
 def runkmeans(data, k, mindistance):
     return kmeans(data, k, randomcentroids(data, k, mindistance), [0] * len(data))
 
 
+# Creates a scatter plot of the result of the kmeans algorithm and tries to find the accuracy.
 def plotkmeans(nums, labellist, data_plot, expgroups, k, groupcoulours, centroidsmindist):
     # Plotting
     axessequence = []
@@ -95,6 +108,8 @@ def plotkmeans(nums, labellist, data_plot, expgroups, k, groupcoulours, centroid
     return accuracy3groups(data_plot, expgroups, groups), end-start
 
 
+# A very unreliable accuracy function, which broke after some changes were made.
+# It was not removed due to it *occasionally* working.
 def accuracy3groups(data, expgroups, actgroups):
     tuples = utils.maketuples(data)
     expset = copy.deepcopy(tuples)
@@ -103,10 +118,13 @@ def accuracy3groups(data, expgroups, actgroups):
     exp = [set(), set(), set()]
     act = [set(), set(), set()]
 
+    # Sorting the points into their expected and actual groups.
     for i in range(len(data)):
         exp[expgroups[i]].add(expset[i])
         act[actgroups[i]].add(actset[i])
 
+    # Finding the size of the intersection between each expected and actual group,
+    # to try to find the best fit, since there is no guarantee the classes are called the same.
     bestfit = []
     for e in exp:
         diff = []
@@ -115,8 +133,10 @@ def accuracy3groups(data, expgroups, actgroups):
         bestfit.append(utils.getindexofsmallest(diff))
 
     if len(set(bestfit)) < 3:
+        # No best fit found
         return 0
 
+    # Shifting the sets to their proper place
     for i in range(len(act)):
         if bestfit[i] == i:
             continue
@@ -125,6 +145,7 @@ def accuracy3groups(data, expgroups, actgroups):
             act[bestfit[i]], act[i] = act[i], act[bestfit[i]]
             bestfit[bestfit[i]], bestfit[i] = bestfit[i], bestfit[bestfit[i]]
 
+    # Adding the points to a single set with their class appended
     finalexp = set()
     finalact = set()
     for i in range(len(exp)):
@@ -137,5 +158,6 @@ def accuracy3groups(data, expgroups, actgroups):
             temp.append(i)
             finalact.add(tuple(temp))
 
+    # Finding the common points across the actual and expected sets, and thus the accuracy.
     common = finalact & finalexp
     return len(common) / len(finalact)
