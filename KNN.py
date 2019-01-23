@@ -1,6 +1,4 @@
 import time
-import numpy as np
-import numpy.linalg as npl
 import numpy.random as random
 import copy
 
@@ -24,7 +22,7 @@ def knn3d(trainset, dataset, k):
         neighbours = []
         total = [0] * (len(trainset) - 1)
         for p in trainset:
-            best = [euclideandistance(x, p)]
+            best = [utils.euclideandistance(x, p)]
             if len(neighbours) < k:
                 newn = p + best
                 neighbours.append(newn)
@@ -51,24 +49,6 @@ def accuracy(expected, actual):
     common = actualset & expectedset
 
     return len(common) / len(actualset)
-
-
-def arraysequal(a, b):
-    if len(a) != len(b):
-        return False
-
-    for i, j in zip(a, b):
-        if i != j:
-            return False
-
-    return True
-
-
-def euclideandistance(a, b):
-    x = np.array(a)
-    y = np.array(b)
-
-    return abs(npl.norm(y-x))
 
 
 def plotknn(nums, labellist, data_plot, k, percenttraining):

@@ -1,5 +1,7 @@
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import numpy.linalg as npl
 
 import math
 
@@ -18,6 +20,25 @@ def getcols(x, start, end):
         if i >= start:
             arr.append(getcol(x, i))
     return arr
+
+
+def arraysequal(a, b):
+    if len(a) != len(b):
+        return False
+
+    for i, j in zip(a, b):
+        if i != j:
+            return False
+
+    return True
+
+
+def euclideandistance(a, b):
+    x = np.array(a)
+    y = np.array(b)
+
+    return abs(npl.norm(y-x))
+
 
 
 def maketuples(arr):

@@ -1,7 +1,5 @@
 import math
 import time
-import numpy as np
-import numpy.linalg as npl
 import numpy.random as random
 import datautils as utils
 import copy
@@ -13,11 +11,10 @@ def randomcentroids(dataset, k, mindistance):
     for a in centroids:
         for b in centroids:
             if b is not a:
-                if euclideandistance(a, b) < mindistance:
+                if utils.euclideandistance(a, b) < mindistance:
                     # if this set of centroids is unfavourable, run it again
                     return randomcentroids(dataset, k, mindistance)
     return centroids
-    # return findcentroids(dataset, k, randomgroups(len(dataset), k))
 
 
 def randomgroups(length, k):
@@ -58,35 +55,17 @@ def kmeans(dataset, k, centroids, groups):
     for i in range(len(dataset)):
         best = math.inf
         for j in range(k):
-            dist = euclideandistance(dataset[i], centroids[j])
+            dist = utils.euclideandistance(dataset[i], centroids[j])
             if best > dist:
                 best = dist
                 newgroups[i] = j
 
     newcentroids = findcentroids(dataset, k, newgroups)
 
-    if not arraysequal(newcentroids, centroids):
+    if not utils.arraysequal(newcentroids, centroids):
         return kmeans(dataset, k, newcentroids, newgroups)
 
     return newgroups
-
-
-def arraysequal(a, b):
-    if len(a) != len(b):
-        return False
-
-    for i, j in zip(a, b):
-        if i != j:
-            return False
-
-    return True
-
-
-def euclideandistance(a, b):
-    x = np.array(a)
-    y = np.array(b)
-
-    return abs(npl.norm(y-x))
 
 
 def runkmeans(data, k, mindistance):
