@@ -2,7 +2,7 @@ import random
 import copy
 import time
 from Loader import plotdata
-from KNN import knn3d
+from KNN import runknn
 from KNN import accuracy
 from KNN import plotknn
 import datautils as utils
@@ -15,21 +15,23 @@ def averageaccuracyknn(dataset, k, percenttraining, runs):
     acc = 0
     time100 = 0
     for i in range(runs):
-        knnin = copy.deepcopy(dataset)
-        random.shuffle(knnin)
-        trainingslice = round(percenttraining * len(knnin))
-        trainset = knnin[:trainingslice].copy()
-        unclass = knnin[trainingslice:].copy()
+        # knnin = copy.deepcopy(dataset)
+        # random.shuffle(knnin)
+        # trainingslice = round(percenttraining * len(knnin))
+        # trainset = knnin[:trainingslice].copy()
+        # unclass = knnin[trainingslice:].copy()
 
         start = time.time()
-        knnout = knn3d(trainset, unclass, k)
+        # knnout = knn3d(trainset, unclass, k)
+        knnout = runknn(dataset, k, percenttraining)
         end = time.time()
 
-        fullset = knnout + trainset
-        acc += accuracy(dataset, fullset)
+        # fullset = knnout + trainset
+        temp = accuracy(dataset, knnout)
+        acc += temp
         time100 += end - start
 
-    acc = (acc - 100*percenttraining) / ((1-percenttraining) * 100)
+    # acc = (acc - 100.0*percenttraining) / ((1.0-percenttraining) * 100.0)
     return acc, time100
 
 
@@ -55,19 +57,25 @@ def averageaccuracykmeans(dataset, expgroups, k, centroidsmindist, attempts):
 
 
 choice = -1
-while choice != 6:
-    print("=========Menu=========")
+labellist = utils.getlabellist("irisattributes.data")
+
+while choice != 8:
+    data = []
+    print("===================Menu===================")
     print("1. Plot Dataset")
     print("2. K-Means")
     print("3. Average K-Means")
     print("4. KNN")
     print("5. Average KNN")
-    print("6. Quit")
-    print("======================")
+    print("6. Tabulate KNN over size of training set")
+    print("7. Tabulate KNN over k")
+    print("8. Quit")
+    print("==========================================")
     choice = int(input("Enter the number of the desired option: "))
+    if choice == 8:
+        break
 
     cols = utils.inputcols("irisattributes.data").copy()
-    labellist = utils.getlabellist("irisattributes.data")
 
     if choice == 1:
         data = utils.getdata("iris.data", cols, True)
@@ -86,9 +94,21 @@ while choice != 6:
         data = utils.getdata("iris.data", cols, True)
         kvar = int(input("Enter k: "))
         perc = float(input("Enter percent training set: ")) / 100
-        print("Accuracy and time: " + str(plotknn(cols, labellist, data, kvar, perc)))
+        print("Accuracy (including training set) and time: " + str(plotknn(cols, labellist, data, kvar, perc)))
     elif choice == 5:
         data = utils.getdata("iris.data", cols, True)
         kvar = int(input("Enter k: "))
-        perc = float(input("Enter percent training set: "))/100
+        perc = float(input("Enter percent training set: "))/100.0
         print("Accuracy and time over 100 runs: " + str(averageaccuracyknn(data, kvar, perc, 100)))
+    elif choice == 6:
+        data = utils.getdata("iris.data", cols, True)
+        kvar = int(input("Enter k: "))
+        for i in range(8):
+            perc = (15 + i*10) / 100.0
+            print(str(averageaccuracyknn(data, kvar, perc, 100)))
+    elif choice == 7:
+        data = utils.getdata("iris.data", cols, True)
+        perc = float(input("Enter percent training set: "))/100.0
+        for i in range(round(150*perc/3)):
+            kvar = 1 + i*3
+            print(str(kvar) + " " + str(averageaccuracyknn(data, kvar, perc, 100)))

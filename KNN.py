@@ -13,6 +13,8 @@ def runknn(data, k, percenttraining):
     trainingsize = round(percenttraining * len(knninput))
     trainingset = knninput[:trainingsize].copy()
     unclassified = knninput[trainingsize:].copy()
+    for u in unclassified:
+        u[len(u)-1] = -1
     knnresult = knn3d(trainingset, unclassified, k)
     return knnresult + trainingset
 
@@ -91,4 +93,6 @@ def plotknn(nums, labellist, data_plot, k, percenttraining):
 
     # print(axessequence)
     utils.nscatter(axessequence, list(labellist[i] for i in nums), colours)
-    return accuracy(data_plot, fulldata), end-start
+    acc = accuracy(data_plot, fulldata)
+    # acc = (acc - 100*percenttraining) / ((1-percenttraining) * 100)
+    return acc, end-start
